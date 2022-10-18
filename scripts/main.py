@@ -9,17 +9,20 @@ def auth_handler():
     remember_device = True
     return key, remember_device
 
+# Получение постов с личной стены
 def get_personal_wall_posts(vk_session):
     vk = vk_session.get_api()
     response = vk.wall.get(count=1)
     if response['items']:
         print(response['items'][0])
 
+# Получение опреденного количества постов со стены группы по id
 def get_public_posts_by_count(vk_session, owner_id, count=100):
     vk = vk_session.get_api()
     response = vk.wall.get(owner_id=owner_id, count=count)
     print(response)
 
+# Получение всех постов со стены группы по id
 def get_public_posts_all(vk_session, owner_id):
     vk = vk_session.get_api()
     rez_responce =[]
@@ -30,12 +33,18 @@ def get_public_posts_all(vk_session, owner_id):
     rez_responce.extend(cur_response.get('items'))
     offs += 101
 
-    while offs < all_posts:
+    while offs < 10000:
         print(offs)
         cur_response = vk.wall.get(owner_id=owner_id, offset=offs, count=100)
         rez_responce.extend(cur_response.get('items'))
         offs += 101
-    print(len(rez_responce))
+    return rez_responce
+
+# Удаление всех рекламных постов
+def posts_dataset(all_posts):
+    for i in all_posts:
+        if (i['marked_as_ads'] == 1):
+            all_posts.remove(i)
 
 if __name__ == '__main__':
     vk_session = vk_api.VkApi(secret.login, secret.password, auth_handler=auth_handler)
@@ -46,7 +55,9 @@ if __name__ == '__main__':
 
     # get_personal_wall_posts(vk_session)
     print('---------------------------')
-    # get_public_posts_count(vk_session, '-297836', 10)
+    # get_public_posts_by_count(vk_session, '-297836', 100)
     print('---------------------------')
-    get_public_posts_all(vk_session, '-297836')
+    rez = get_public_posts_all(vk_session, '-297836')
+    posts_dataset(rez)
+    print(len(rez))
 
