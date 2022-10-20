@@ -4,6 +4,7 @@ import secret
 import re
 import string
 import pymorphy2
+import json
 
 morph = pymorphy2.MorphAnalyzer()
 
@@ -96,6 +97,10 @@ if __name__ == '__main__':
     print(len(rez2))
     rez_text1 = text_preparation(rez1)
     rez_text2 = text_preparation(rez2)
+
+    # Загрузка текста в JSON для дальнейшей визуализации
+    with open('data2.json', 'w', encoding='utf-8') as f:
+        json.dump(rez_text1 + rez_text2, f, ensure_ascii=False, indent=4)
 
     # Загрузка текста в файл для дальнейшей визуализации
     my_file1 = open("text_public1.txt", "w")
