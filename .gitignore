@@ -5,5 +5,5 @@ ENV/
 .env
 .venv
 
-scripts/secret.py
+src/secret.py
 vk_config.v2.json
