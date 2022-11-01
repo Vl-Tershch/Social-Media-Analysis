@@ -1,3 +1,7 @@
+import pickle
+import time
+
+import networkx as nx
 import vk_api
 import emoji
 import secret
@@ -5,6 +9,8 @@ import re
 import string
 import pymorphy2
 import json
+import requests
+import numpy as np
 
 morph = pymorphy2.MorphAnalyzer()
 
@@ -77,6 +83,107 @@ def lemmatization(text):
     sort_words = sorted(rez_words.items(), key=lambda x: x[1], reverse=True)
     return sort_words
 
+group_api_url = 'https://api.vk.com/method/groups.getMembers?group_id='
+id_api_url = 'https://api.vk.com/method/friends.get?user_id='
+fields = '&fields=sex,bdate,city,country'
+count = '&count=1000'
+offset = '&offset='
+v = '&v=5.131'
+access_token = '&access_token=vk1.'
+# Id группы ВК
+
+# 29842742
+#  297836
+
+vk_group_id = 29842742
+
+
+
+def extract_members(group_id):
+    list_of_members = []
+    j = 1
+    url = group_api_url + str(group_id) + offset + str(0) + count + access_token + v
+    json_response = requests.get(url).json()
+    users = json_response['response']['items']
+    list_of_members += users
+    i=len(users)
+    while(json_response['response']['next_from']!=""):
+        time.sleep(0.12)
+        url = group_api_url + str(group_id) + offset + str(i) + count +  access_token + v
+        print(i)
+        json_response = requests.get(url).json()
+        users = json_response['response']['items']
+        list_of_members += users
+        i=i+len(users)
+        j=j+1
+        print(j)
+    return list_of_members
+
+
+def user_friends_list(user_id, group_members):
+    url = id_api_url + str(user_id) + access_token + v
+
+    time.sleep(0.12)
+
+    try:
+        json_response = requests.get(url).json()
+    except requests.exceptions.RequestException:
+        print('error')
+        return []
+
+    if 'error' in json_response.keys():
+        print('error')
+        return []
+
+    friends_inside_community_list = list(set(json_response['response']['items']).intersection(group_members))
+    print('success')
+    return friends_inside_community_list
+
+
+# Получение коэффициентов схожести графа с моделью Малого мира
+def small_world_similarity(G):
+    L_s, C_s = [], []
+
+    L_connected_subgraphs = []
+    connected_graphs = list((G.subgraph(c) for c in nx.connected_components(G)))
+    for x in connected_graphs:
+        path_length = nx.average_shortest_path_length(x)
+        L_connected_subgraphs.append(path_length)
+
+    L = np.mean(L_connected_subgraphs)
+    C = nx.average_clustering(G)
+    print('L ', L)
+    print('C ', C)
+
+    for i in range(10):
+        print(i)
+        connected_components_count = 10
+        while connected_components_count != 1:
+            generated_G = nx.watts_strogatz_graph(len(G), 4, 0.6)
+
+            A = (generated_G.subgraph(c) for c in nx.connected_components(generated_G))
+            A = list(A)
+
+            connected_components_count = len(A)
+
+        print(nx.number_of_edges(G), nx.number_of_edges(generated_G))
+
+        L_s_ = nx.average_shortest_path_length(generated_G)
+        C_s_ = nx.average_clustering(generated_G)
+        print("L_s ", L_s_)
+        print("C_s ", C_s_)
+        L_s.append(L_s_)
+        C_s.append(C_s_)
+
+    lambda_ = L / np.mean(L_s)
+    gamma_ = C / np.mean(C_s)
+    return lambda_, gamma_
+
+
+
+
+
+
 if __name__ == '__main__':
     vk_session = vk_api.VkApi(secret.login, secret.password, auth_handler=auth_handler)
     try:
@@ -84,7 +191,7 @@ if __name__ == '__main__':
     except vk_api.AuthError as error_msg:
         print(error_msg)
 
-    # get_personal_wall_posts(vk_session)
+    ''' # get_personal_wall_posts(vk_session)
     print('---------------------------')
     # get_public_posts_by_count(vk_session, '-297836', 100)
     print('---------------------------')
@@ -116,3 +223,43 @@ if __name__ == '__main__':
     rez_words2 = lemmatization(rez_text2)
     print(rez_words1)
     print(rez_words2)
+    '''
+    '''group_members = extract_members(vk_group_id)
+    print(len(group_members))
+    print(group_members[4000])
+
+    output = open('group_members_' + str(vk_group_id) + '.pkl', 'wb')
+    pickle.dump(group_members, output)
+    output.close()
+    with open('group_members_' + str(vk_group_id) + '.pkl', 'rb') as f:
+        group_members = pickle.load(f)
+    url = id_api_url + str(61781867) + access_token + v
+    print(requests.get(url).json())
+
+    f1 = open('friends_inside_' + str(vk_group_id) + '.txt', 'w')
+
+    for member_id in group_members:
+
+        a = user_friends_list(member_id, group_members)
+
+        if len(a) != 0:
+
+            for friend_id in a:
+                f1.write('%d' % member_id)
+                f1.write(' ')
+                f1.write('%d' % friend_id)
+                f1.write('\n')
+
+    f1.close()'''
+    G1 = nx.read_edgelist('friends_inside_' + str(vk_group_id) + '.txt')
+    print('Число вершин:', len(list(G1.nodes())))
+    print('Число ребер:', len(list(G1.edges())))
+    k_cores_size = []
+
+    for i in range(1, 25):
+        k_cores_size.append(len(nx.k_core(G1, i).nodes()))
+
+    for i, n in enumerate(k_cores_size):
+        print('Количество вершин в %s-core:' % (i + 1), n)
+    nx.draw(G1, node_size=25)
+    '''print(small_world_similarity(G1))'''
