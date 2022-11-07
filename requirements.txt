@@ -33,3 +33,4 @@ threadpoolctl==3.1.0
 tqdm==4.64.1
 urllib3==1.26.12
 vk-api==11.9.9
+networkx==2.8.8

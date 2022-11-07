@@ -45,12 +45,27 @@ def get_public_posts_all(vk_session, owner_id):
     rez_responce.extend(cur_response.get('items'))
     offs += 101
 
-    while offs < all_posts:
+    while offs < 50000: #all_posts:
         print(offs)
         cur_response = vk.wall.get(owner_id=owner_id, offset=offs, count=100)
         rez_responce.extend(cur_response.get('items'))
         offs += 101
-    return rez_responce
+
+    count_iter = 0
+    print("----", len(rez_responce))
+    comments_strings = []
+    for post in rez_responce:
+        # print(count_iter)
+        comments = vk.wall.getComments(owner_id=owner_id, post_id=post['id'], count=100)['items']
+        cur_ids = []
+        for comment in comments:
+            cur_ids.append(comment['from_id'])
+        for i in cur_ids:
+            for i1 in range(len(cur_ids)):
+                if cur_ids[i1] != i:
+                    comments_strings.append(str(i) + " " + str(cur_ids[i1]))
+        count_iter += 1
+    return rez_responce, comments_strings
 
 # Удаление всех рекламных постов
 def posts_dataset(all_posts):
@@ -83,6 +98,7 @@ def lemmatization(text):
     sort_words = sorted(rez_words.items(), key=lambda x: x[1], reverse=True)
     return sort_words
 
+# Part 2-----------------------------------
 group_api_url = 'https://api.vk.com/method/groups.getMembers?group_id='
 id_api_url = 'https://api.vk.com/method/friends.get?user_id='
 fields = '&fields=sex,bdate,city,country'
@@ -191,39 +207,49 @@ if __name__ == '__main__':
     except vk_api.AuthError as error_msg:
         print(error_msg)
 
-    ''' # get_personal_wall_posts(vk_session)
+    # get_personal_wall_posts(vk_session)
     print('---------------------------')
     # get_public_posts_by_count(vk_session, '-297836', 100)
     print('---------------------------')
-    rez1 = get_public_posts_all(vk_session, '-297836')
+    #rez1 = get_public_posts_all(vk_session, '-297836')
     rez2 = get_public_posts_all(vk_session, '-29842742')
 
-    posts_dataset(rez1)
-    posts_dataset(rez2)
-    print(len(rez1))
-    print(len(rez2))
-    rez_text1 = text_preparation(rez1)
-    rez_text2 = text_preparation(rez2)
+    #posts_dataset(rez1[0])
+    posts_dataset(rez2[0])
+    #print(len(rez1[0]))
+    print(len(rez2[0]))
+    #rez_text1 = text_preparation(rez1[0])
+    rez_text2 = text_preparation(rez2[0])
 
     # Загрузка текста в JSON для дальнейшей визуализации
-    with open('data2.json', 'w', encoding='utf-8') as f:
-        json.dump(rez_text1 + rez_text2, f, ensure_ascii=False, indent=4)
+    # with open('data2.json', 'w', encoding='utf-8') as f:
+    #     json.dump(rez_text1 + rez_text2, f, ensure_ascii=False, indent=4)
 
     # Загрузка текста в файл для дальнейшей визуализации
-    my_file1 = open("text_public1.txt", "w")
-    for i in rez_text1:
-        my_file1.write(i + '\n')
-    my_file1.close()
+    # my_file1 = open("text_public1.txt", "w")
+    # for i in rez_text1:
+    #     my_file1.write(i + '\n')
+    # my_file1.close()
     my_file2 = open("text_public2.txt", "w")
     for i in rez_text2:
         my_file2.write(i + '\n')
     my_file2.close()
 
-    rez_words1 = lemmatization(rez_text1)
-    rez_words2 = lemmatization(rez_text2)
-    print(rez_words1)
-    print(rez_words2)
-    '''
+    # Загрузка id для графа
+    # my_file3 = open("ids_public1.txt", "w")
+    # for i in rez1[1]:
+    #     my_file3.write(i + '\n')
+    # my_file3.close()
+    my_file4 = open("ids_public2.txt", "w")
+    for i in rez2[1]:
+        my_file4.write(i + '\n')
+    my_file4.close()
+
+    # rez_words1 = lemmatization(rez_text1)
+    # rez_words2 = lemmatization(rez_text2)
+    # print(rez_words1)
+    # print(rez_words2)
+
     '''group_members = extract_members(vk_group_id)
     print(len(group_members))
     print(group_members[4000])
@@ -251,15 +277,15 @@ if __name__ == '__main__':
                 f1.write('\n')
 
     f1.close()'''
-    G1 = nx.read_edgelist('friends_inside_' + str(vk_group_id) + '.txt')
-    print('Число вершин:', len(list(G1.nodes())))
-    print('Число ребер:', len(list(G1.edges())))
-    k_cores_size = []
-
-    for i in range(1, 25):
-        k_cores_size.append(len(nx.k_core(G1, i).nodes()))
-
-    for i, n in enumerate(k_cores_size):
-        print('Количество вершин в %s-core:' % (i + 1), n)
-    nx.draw(G1, node_size=25)
+    # G1 = nx.read_edgelist('friends_inside_' + str(vk_group_id) + '.txt')
+    # print('Число вершин:', len(list(G1.nodes())))
+    # print('Число ребер:', len(list(G1.edges())))
+    # k_cores_size = []
+    #
+    # for i in range(1, 25):
+    #     k_cores_size.append(len(nx.k_core(G1, i).nodes()))
+    #
+    # for i, n in enumerate(k_cores_size):
+    #     print('Количество вершин в %s-core:' % (i + 1), n)
+    # nx.draw(G1, node_size=25)
     '''print(small_world_similarity(G1))'''
