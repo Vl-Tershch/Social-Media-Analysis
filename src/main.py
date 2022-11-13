@@ -45,7 +45,7 @@ def get_public_posts_all(vk_session, owner_id):
     rez_responce.extend(cur_response.get('items'))
     offs += 101
 
-    while offs < 50000: #all_posts:
+    while offs < all_posts:
         print(offs)
         cur_response = vk.wall.get(owner_id=owner_id, offset=offs, count=100)
         rez_responce.extend(cur_response.get('items'))
@@ -55,7 +55,7 @@ def get_public_posts_all(vk_session, owner_id):
     print("----", len(rez_responce))
     comments_strings = []
     for post in rez_responce:
-        # print(count_iter)
+        print(count_iter)
         comments = vk.wall.getComments(owner_id=owner_id, post_id=post['id'], count=100)['items']
         cur_ids = []
         for comment in comments:
@@ -113,8 +113,7 @@ access_token = '&access_token=vk1.'
 
 vk_group_id = 29842742
 
-
-
+# Извлечение участников группы
 def extract_members(group_id):
     list_of_members = []
     j = 1
@@ -135,7 +134,7 @@ def extract_members(group_id):
         print(j)
     return list_of_members
 
-
+# Получение списка друзей участников группы
 def user_friends_list(user_id, group_members):
     url = id_api_url + str(user_id) + access_token + v
 
@@ -155,51 +154,6 @@ def user_friends_list(user_id, group_members):
     print('success')
     return friends_inside_community_list
 
-
-# Получение коэффициентов схожести графа с моделью Малого мира
-def small_world_similarity(G):
-    L_s, C_s = [], []
-
-    L_connected_subgraphs = []
-    connected_graphs = list((G.subgraph(c) for c in nx.connected_components(G)))
-    for x in connected_graphs:
-        path_length = nx.average_shortest_path_length(x)
-        L_connected_subgraphs.append(path_length)
-
-    L = np.mean(L_connected_subgraphs)
-    C = nx.average_clustering(G)
-    print('L ', L)
-    print('C ', C)
-
-    for i in range(10):
-        print(i)
-        connected_components_count = 10
-        while connected_components_count != 1:
-            generated_G = nx.watts_strogatz_graph(len(G), 4, 0.6)
-
-            A = (generated_G.subgraph(c) for c in nx.connected_components(generated_G))
-            A = list(A)
-
-            connected_components_count = len(A)
-
-        print(nx.number_of_edges(G), nx.number_of_edges(generated_G))
-
-        L_s_ = nx.average_shortest_path_length(generated_G)
-        C_s_ = nx.average_clustering(generated_G)
-        print("L_s ", L_s_)
-        print("C_s ", C_s_)
-        L_s.append(L_s_)
-        C_s.append(C_s_)
-
-    lambda_ = L / np.mean(L_s)
-    gamma_ = C / np.mean(C_s)
-    return lambda_, gamma_
-
-
-
-
-
-
 if __name__ == '__main__':
     vk_session = vk_api.VkApi(secret.login, secret.password, auth_handler=auth_handler)
     try:
@@ -207,50 +161,46 @@ if __name__ == '__main__':
     except vk_api.AuthError as error_msg:
         print(error_msg)
 
-    # get_personal_wall_posts(vk_session)
+    get_personal_wall_posts(vk_session)
     print('---------------------------')
-    # get_public_posts_by_count(vk_session, '-297836', 100)
+    get_public_posts_by_count(vk_session, '-297836', 100)
     print('---------------------------')
-    #rez1 = get_public_posts_all(vk_session, '-297836')
+    rez1 = get_public_posts_all(vk_session, '-297836')
     rez2 = get_public_posts_all(vk_session, '-29842742')
 
-    #posts_dataset(rez1[0])
+    posts_dataset(rez1[0])
     posts_dataset(rez2[0])
-    #print(len(rez1[0]))
+    print(len(rez1[0]))
     print(len(rez2[0]))
-    #rez_text1 = text_preparation(rez1[0])
+    rez_text1 = text_preparation(rez1[0])
     rez_text2 = text_preparation(rez2[0])
 
     # Загрузка текста в JSON для дальнейшей визуализации
-    # with open('data2.json', 'w', encoding='utf-8') as f:
-    #     json.dump(rez_text1 + rez_text2, f, ensure_ascii=False, indent=4)
+    with open('data2.json', 'w', encoding='utf-8') as f:
+        json.dump(rez_text1 + rez_text2, f, ensure_ascii=False, indent=4)
 
     # Загрузка текста в файл для дальнейшей визуализации
-    # my_file1 = open("text_public1.txt", "w")
-    # for i in rez_text1:
-    #     my_file1.write(i + '\n')
-    # my_file1.close()
+    my_file1 = open("text_public1.txt", "w")
+    for i in rez_text1:
+        my_file1.write(i + '\n')
+    my_file1.close()
     my_file2 = open("text_public2.txt", "w")
     for i in rez_text2:
         my_file2.write(i + '\n')
     my_file2.close()
 
     # Загрузка id для графа
-    # my_file3 = open("ids_public1.txt", "w")
-    # for i in rez1[1]:
-    #     my_file3.write(i + '\n')
-    # my_file3.close()
+    my_file3 = open("ids_public1.txt", "w")
+    for i in rez1[1]:
+        my_file3.write(i + '\n')
+    my_file3.close()
     my_file4 = open("ids_public2.txt", "w")
     for i in rez2[1]:
         my_file4.write(i + '\n')
     my_file4.close()
 
-    # rez_words1 = lemmatization(rez_text1)
-    # rez_words2 = lemmatization(rez_text2)
-    # print(rez_words1)
-    # print(rez_words2)
-
-    '''group_members = extract_members(vk_group_id)
+    # Запись участников группы и друзей среди них
+    group_members = extract_members(vk_group_id)
     print(len(group_members))
     print(group_members[4000])
 
@@ -276,16 +226,4 @@ if __name__ == '__main__':
                 f1.write('%d' % friend_id)
                 f1.write('\n')
 
-    f1.close()'''
-    # G1 = nx.read_edgelist('friends_inside_' + str(vk_group_id) + '.txt')
-    # print('Число вершин:', len(list(G1.nodes())))
-    # print('Число ребер:', len(list(G1.edges())))
-    # k_cores_size = []
-    #
-    # for i in range(1, 25):
-    #     k_cores_size.append(len(nx.k_core(G1, i).nodes()))
-    #
-    # for i, n in enumerate(k_cores_size):
-    #     print('Количество вершин в %s-core:' % (i + 1), n)
-    # nx.draw(G1, node_size=25)
-    '''print(small_world_similarity(G1))'''
+    f1.close()
